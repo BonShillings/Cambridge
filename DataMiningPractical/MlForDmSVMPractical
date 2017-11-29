@@ -1,0 +1,122 @@
+from sklearn import datasets
+from sklearn import svm
+from sklearn import metrics
+from sklearn.grid_search import GridSearchCV
+
+from svmPlot import svmPlot
+
+import numpy as np
+
+
+#Data
+
+# iris dataset
+#dataset = datasets.load_iris()
+
+# digits dataset
+dataset = datasets.load_digits()
+
+
+X = dataset.data[:,:]
+y = dataset.target
+indices = np.random.permutation(len(X))
+
+test_size=100
+
+X_train = X[indices[:-test_size]]
+y_train = y[indices[:-test_size]]
+X_test = X[indices[-test_size:]]
+y_test = y[indices[-test_size:]]
+
+
+# measure/plot linear SVM
+
+
+#SVM
+
+SVM_linear = svm.SVC(kernel='linear',C=1)
+
+SVM_linear.fit(X_train,y_train)
+
+y_pred = SVM_linear.predict(X_test)
+
+
+print(metrics.classification_report(y_test,y_pred))
+print("Overall Accuracy: ", round(metrics.accuracy_score(y_test,y_pred),2))
+
+#svmPlot(X,y,SVM_linear)
+
+
+#Kernel Trick
+
+#SVM_poly = svm.SVC(kernel='poly',C=1, degree=1,coef0=1) #Polynomial kernal
+'''
+for i in (1,10,25,50,100):
+    # measure/plot rbf svm
+    SVM_rbf = svm.SVC(kernel='rbf',C=i, gamma=i) #RBF kernal
+
+    SVM_rbf.fit(X_train,y_train)
+    y_pred = SVM_rbf.predict(X_test)
+
+    print(i)
+    print(metrics.classification_report(y_test,y_pred))
+    print("Overall Accuracy: ", round(metrics.accuracy_score(y_test,y_pred),2))
+
+    svmPlot(X,y,SVM_rbf)
+'''
+
+# Cross Validation approach
+
+print("Running CV for rbf")
+# RBF
+g_range = 2. ** np.arange(-20,20,step=1) #gamma
+C_range = 2. ** np.arange(-20,20,step=1)
+
+parameters = [{'gamma':g_range, 'C': C_range, 'kernel':['rbf']}]
+
+grid = GridSearchCV(svm.SVC(), parameters, cv=10,n_jobs=4)
+grid.fit(X_train,y_train)
+bestG = grid.best_params_['gamma']
+bestC = grid.best_params_['C']
+
+print("The best parameters for rbf are: gamma=", np.log2(bestG), " and Cost=", np.log2(bestC))
+
+SVM_rbf = svm.SVC(kernel='rbf',C=bestC, gamma=bestG) #RBF kernal
+
+
+SVM_rbf.fit(X_train,y_train)
+y_pred = SVM_rbf.predict(X_test)
+
+print(metrics.classification_report(y_test,y_pred))
+print("Overall Accuracy: ", round(metrics.accuracy_score(y_test,y_pred),2))
+
+#svmPlot(X,y,SVM_rbf)
+
+
+#poly
+
+print("Running CV for poly")
+
+degree_range = np.arange(1,3,step=1) # degree
+C_range = 2. ** np.arange(-30,30,step=5)
+
+parameters = [{'degree':degree_range, 'C': C_range, 'kernel':['poly']}]
+
+grid = GridSearchCV(svm.SVC(), parameters, cv=5,n_jobs=4)
+grid.fit(X_train,y_train)
+bestDegree = grid.best_params_['degree']
+bestC = grid.best_params_['C']
+
+print("The best parameters for poly are: degree=", np.log2(bestDegree), " and Cost=", np.log2(bestC))
+
+
+SVM_poly = svm.SVC(kernel='poly',C=bestC, degree=bestDegree) #RBF kernal
+
+SVM_poly.fit(X_train,y_train)
+y_pred = SVM_rbf.predict(X_test)
+
+
+print(metrics.classification_report(y_test,y_pred))
+print("Overall Accuracy: ", round(metrics.accuracy_score(y_test,y_pred),2))
+
+#svmPlot(X,y,SVM_poly)
